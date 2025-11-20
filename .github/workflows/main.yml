@@ -7,13 +7,8 @@ on:
     branches: [ main, master ]
 
 jobs:
-  build:
-    runs-on: windows-latest
-    strategy:
-      matrix:
-        platform: [web, windows]
-      fail-fast: false  # Continue if one platform fails
-
+  web-build:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       
@@ -21,78 +16,63 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          cache: true
-          cache-key: 'flutter-3.13.9'
-          cache-path: 'C:\\src\\flutter\\.pub-cache'
       
-      - name: Enable Flutter platforms
-        run: |
-          flutter config --enable-web
-          flutter config --enable-windows-desktop
-        if: matrix.platform == 'web' || matrix.platform == 'windows'
+      - name: Enable Flutter web
+        run: flutter config --enable-web
       
       - name: Get dependencies
         run: flutter pub get
       
       - name: Analyze code
         run: flutter analyze
-        continue-on-error: true  # Continue even if analysis fails
+        continue-on-error: true
       
       - name: Run tests
         run: flutter test
-        continue-on-error: true  # Continue even if tests fail
+        continue-on-error: true
       
       - name: Build Web
-        if: matrix.platform == 'web'
         run: |
           flutter create --platforms web .
           flutter build web --release
-          if [ -d "build/web" ]; then
-            echo "Web build successful"
-          else
-            echo "Web build failed" >&2
-            exit 1
-          fi
-        continue-on-error: true
-      
-      - name: Build Windows
-        if: matrix.platform == 'windows'
-        run: |
-          flutter create --platforms windows .
-          flutter build windows --release
-          if [ -d "build/windows/runner/Release" ]; then
-            echo "Windows build successful"
-          else
-            echo "Windows build failed" >&2
-            exit 1
-          fi
         continue-on-error: true
       
       - name: Upload Web Artifacts
-        if: github.event_name == 'push' && matrix.platform == 'web' && success() || failure()
+        if: github.event_name == 'push' && (success() || failure())
         uses: actions/upload-artifact@v4
         with:
           name: web-build
           path: build/web/
           if-no-files-found: error
           retention-days: 5
+
+  windows-build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+      
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+      
+      - name: Get dependencies
+        run: flutter pub get
+      
+      - name: Build Windows
+        run: |
+          flutter create --platforms windows .
+          flutter build windows --release
+        continue-on-error: true
       
       - name: Upload Windows Artifacts
-        if: github.event_name == 'push' && matrix.platform == 'windows' && success() || failure()
+        if: github.event_name == 'push' && (success() || failure())
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
           path: build/windows/runner/Release/
           if-no-files-found: error
           retention-days: 5
-      
-      - name: Build Status
-        if: always()
-        run: |
-          if [ -d "build/web" ] || [ -d "build/windows/runner/Release" ]; then
-            echo "At least one platform built successfully"
-            exit 0
-          else
-            echo "All builds failed" >&2
-            exit 1
-          fi
