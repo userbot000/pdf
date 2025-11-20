@@ -1,11 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart';
-import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
 class EkranMesovePDF extends StatefulWidget {
   final String kovetzPDF;
@@ -13,11 +8,11 @@ class EkranMesovePDF extends StatefulWidget {
   final bool meniLiftoachBeMatsaveChitzoni;
 
   const EkranMesovePDF({
-    super.key,
+    Key? key,
     required this.kovetzPDF,
     required this.kotert,
     this.meniLiftoachBeMatsaveChitzoni = true,
-  });
+  }) : super(key: key);
 
   @override
   State<EkranMesovePDF> createState() => _EkranMesovePDFState();
@@ -36,10 +31,10 @@ class _EkranMesovePDFState extends State<EkranMesovePDF> {
   Future<void> _initializeWebView() async {
     _controller = WebViewController();
     
-    // Enable JavaScript
+    // הפעל JavaScript
     await _controller.setJavaScriptMode(JavaScriptMode.unrestricted);
     
-    // Handle page load events
+    // טיפול באירועי טעינת דפים
     _controller.setNavigationDelegate(NavigationDelegate(
       onPageStarted: (String url) {
         setState(() => _isLoading = true);
@@ -49,13 +44,12 @@ class _EkranMesovePDFState extends State<EkranMesovePDF> {
       },
     ));
 
-    // Load the PDF using Google Docs Viewer
+    // טען את ה-PDF באמצעות Google Docs Viewer
     final pdfUrl = widget.kovetzPDF.startsWith('http')
         ? 'https://docs.google.com/viewer?url=${Uri.encodeComponent(widget.kovetzPDF)}&embedded=true'
         : widget.kovetzPDF;
         
     await _controller.loadRequest(Uri.parse(pdfUrl));
-  }
   }
 
   Future<void> _liftoachBeMatsaveChitzoni(String url) async {
@@ -95,5 +89,4 @@ class _EkranMesovePDFState extends State<EkranMesovePDF> {
       ),
     );
   }
-
 }
