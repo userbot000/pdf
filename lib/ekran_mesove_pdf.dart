@@ -84,17 +84,13 @@ class _EkranMesovePDFState extends State<EkranMesovePDF> {
       ),
       body: Stack(
         children: [
-          Stack(
-            children: [
-              WebViewWidget(
-                controller: _controller,
-              ),
-              if (_isLoading)
-                const Center(
-                  child: CircularProgressIndicator(),
-                ),
-            ],
+          WebViewWidget(
+            controller: _controller,
           ),
+          if (_isLoading)
+            const Center(
+              child: CircularProgressIndicator(),
+            ),
         ],
       ),
     );
