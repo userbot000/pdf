@@ -7,9 +7,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
-// Add this for WebView widget
-export 'package:webview_flutter/webview_flutter.dart' show WebView, WebViewController, JavascriptMode;
-
 class EkranMesovePDF extends StatefulWidget {
   final String kovetzPDF;
   final String kotert;
@@ -27,39 +24,44 @@ class EkranMesovePDF extends StatefulWidget {
 }
 
 class _EkranMesovePDFState extends State<EkranMesovePDF> {
-  bool _toveaTovah = true;
-  late WebViewController _menahal;
+  late final WebViewController _controller;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    
-    // Enable hybrid composition for better performance on Android
-    if (Platform.isAndroid) {
-      final AndroidWebViewController androidController = WebViewController()
-        ..setJavaScriptMode(JavascriptMode.unrestricted);
-      WebView.platform = AndroidWebViewPlatform(controller: androidController);
-    }
+    _initializeWebView();
   }
 
-  Future<void> _lehatilPDF() async {
-    setState(() => _toveaTovah = true);
+  Future<void> _initializeWebView() async {
+    _controller = WebViewController();
     
-    if (widget.kovetzPDF.startsWith('http')) {
-      final tikunRishmi = await getTemporaryDirectory();
-      final kovetz = File('${tikunRishmi.path}/temp.pdf');
-      final teshuvah = await http.get(Uri.parse(widget.kovetzPDF));
-      await kovetz.writeAsBytes(teshuvah.bodyBytes);
-      _liftoachBeMatsaveChitzoni(kovetz.path);
-    } else {
-      _liftoachBeMatsaveChitzoni(widget.kovetzPDF);
-    }
+    // Enable JavaScript
+    await _controller.setJavaScriptMode(JavaScriptMode.unrestricted);
+    
+    // Handle page load events
+    _controller.setNavigationDelegate(NavigationDelegate(
+      onPageStarted: (String url) {
+        setState(() => _isLoading = true);
+      },
+      onPageFinished: (String url) {
+        setState(() => _isLoading = false);
+      },
+    ));
+
+    // Load the PDF using Google Docs Viewer
+    final pdfUrl = widget.kovetzPDF.startsWith('http')
+        ? 'https://docs.google.com/viewer?url=${Uri.encodeComponent(widget.kovetzPDF)}&embedded=true'
+        : widget.kovetzPDF;
+        
+    await _controller.loadRequest(Uri.parse(pdfUrl));
+  }
   }
 
-  Future<void> _liftoachBeMatsaveChitzoni(String netiv) async {
-    if (await canLaunchUrl(Uri.parse(netiv))) {
+  Future<void> _liftoachBeMatsaveChitzoni(String url) async {
+    if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(
-        Uri.parse(netiv),
+        Uri.parse(url),
         mode: LaunchMode.externalApplication,
       );
     }
@@ -82,74 +84,20 @@ class _EkranMesovePDFState extends State<EkranMesovePDF> {
       ),
       body: Stack(
         children: [
-          WebView(
-            initialUrl: 'about:blank',
-            javascriptMode: JavascriptMode.unrestricted,
-            onWebViewCreated: (WebViewController webViewController) {
-              _menahal = webViewController;
-              _tovLefareshHTML();
-            },
-            onPageFinished: (String url) {
-              setState(() => _toveaTovah = false);
-            },
+          Stack(
+            children: [
+              WebViewWidget(
+                controller: _controller,
+              ),
+              if (_isLoading)
+                const Center(
+                  child: CircularProgressIndicator(),
+                ),
+            ],
           ),
-          if (_toveaTovah)
-            const Center(child: CircularProgressIndicator()),
         ],
       ),
     );
   }
 
-  Future<void> _tovLefareshHTML() async {
-    final htmlContent = '''
-    <!DOCTYPE html>
-    <html dir="rtl">
-    <head>
-      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-      <style>
-        body, html { 
-          margin: 0; 
-          padding: 0; 
-          height: 100%; 
-          overflow: hidden; 
-          background-color: #f5f5f5;
-        }
-        #pdf-viewer { 
-          width: 100%; 
-          height: 100%; 
-          border: none; 
-        }
-        .loading {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          height: 100%;
-          font-family: Arial, sans-serif;
-          color: #666;
-        }
-      </style>
-    </head>
-    <body>
-      <div id="loading" class="loading">
-        <p>טוען מסמך...</p>
-      </div>
-      <iframe 
-        id="pdf-viewer" 
-        src="https://docs.google.com/viewer?url=${Uri.encodeComponent(widget.kovetzPDF)}&embedded=true" 
-        frameborder="0"
-        onload="document.getElementById('loading').style.display='none';"
-        style="display:none;">
-      </iframe>
-      <script>
-        document.getElementById('pdf-viewer').onload = function() {
-          document.getElementById('loading').style.display = 'none';
-          document.getElementById('pdf-viewer').style.display = 'block';
-        };
-      </script>
-    </body>
-    </html>
-    ''';
-    
-    await _menahal.loadHtmlString(htmlContent);
-  }
 }
