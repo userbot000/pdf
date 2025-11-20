@@ -15,11 +15,11 @@ class EkranMesovePDF extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<EkranMesovePDF> createState() => _EkranMesovePDFState();
+  _EkranMesovePDFState createState() => _EkranMesovePDFState();
 }
 
 class _EkranMesovePDFState extends State<EkranMesovePDF> {
-  late final WebViewController _controller;
+  late WebViewController _controller;
   bool _isLoading = true;
 
   @override
@@ -29,12 +29,13 @@ class _EkranMesovePDFState extends State<EkranMesovePDF> {
   }
 
   Future<void> _initializeWebView() async {
+    // יצירת בקר חדש
     _controller = WebViewController();
     
-    // הפעל JavaScript
+    // הפעלת JavaScript
     await _controller.setJavaScriptMode(JavaScriptMode.unrestricted);
     
-    // טיפול באירועי טעינת דפים
+    // טיפול באירועי טעינה
     _controller.setNavigationDelegate(NavigationDelegate(
       onPageStarted: (String url) {
         setState(() => _isLoading = true);
@@ -44,7 +45,7 @@ class _EkranMesovePDFState extends State<EkranMesovePDF> {
       },
     ));
 
-    // טען את ה-PDF באמצעות Google Docs Viewer
+    // טעינת ה-PDF
     final pdfUrl = widget.kovetzPDF.startsWith('http')
         ? 'https://docs.google.com/viewer?url=${Uri.encodeComponent(widget.kovetzPDF)}&embedded=true'
         : widget.kovetzPDF;
@@ -78,13 +79,9 @@ class _EkranMesovePDFState extends State<EkranMesovePDF> {
       ),
       body: Stack(
         children: [
-          WebViewWidget(
-            controller: _controller,
-          ),
+          WebViewWidget(controller: _controller),
           if (_isLoading)
-            const Center(
-              child: CircularProgressIndicator(),
-            ),
+            const Center(child: CircularProgressIndicator()),
         ],
       ),
     );
