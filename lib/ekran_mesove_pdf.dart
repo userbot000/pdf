@@ -4,11 +4,11 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
-
-// Import for Android features
 import 'package:webview_flutter_android/webview_flutter_android.dart';
-// Import for iOS features
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
+
+// Add this for WebView widget
+export 'package:webview_flutter/webview_flutter.dart' show WebView, WebViewController, JavascriptMode;
 
 class EkranMesovePDF extends StatefulWidget {
   final String kovetzPDF;
@@ -33,9 +33,12 @@ class _EkranMesovePDFState extends State<EkranMesovePDF> {
   @override
   void initState() {
     super.initState();
+    
     // Enable hybrid composition for better performance on Android
     if (Platform.isAndroid) {
-      WebView.platform = AndroidWebView();
+      final AndroidWebViewController androidController = WebViewController()
+        ..setJavaScriptMode(JavascriptMode.unrestricted);
+      WebView.platform = AndroidWebViewPlatform(controller: androidController);
     }
   }
 
